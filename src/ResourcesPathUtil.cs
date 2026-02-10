@@ -1,73 +1,72 @@
-﻿using System;
+using System;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Soenneker.Atomics.Strings;
 using Soenneker.Extensions.String;
 using Soenneker.Extensions.ValueTask;
+using Soenneker.Utils.Directory.Abstract;
+using Soenneker.Utils.Paths.Resources.Abstract;
 using Soenneker.Utils.Runtime;
 
 namespace Soenneker.Utils.Paths.Resources;
 
-public static class ResourcesPathUtil
+/// <inheritdoc cref="IResourcesPathUtil"/>
+public sealed class ResourcesPathUtil : IResourcesPathUtil
 {
     private const string _resourcesFolderName = "Resources";
     private const string _overrideEnv = "RESOURCES_DIR";
 
-    private static readonly AtomicString _cached = new();
+    private readonly IDirectoryUtil _directoryUtil;
+    private readonly AtomicString _cached = new();
 
-    /// <summary>
-    /// Returns the absolute path to the "Resources" directory according to the resolution order.
-    /// </summary>
-    [Pure]
-    public static ValueTask<string> Get(CancellationToken cancellationToken = default)
+    public ResourcesPathUtil(IDirectoryUtil directoryUtil)
     {
-        // Fastest path: no async state machine once cached.
+        _directoryUtil = directoryUtil;
+    }
+
+    /// <inheritdoc />
+    [Pure]
+    public ValueTask<string> Get(CancellationToken cancellationToken = default)
+    {
         string? cached = _cached.Get();
         if (cached is not null)
             return new ValueTask<string>(cached);
 
-        // Only allocate/await when not cached.
         return GetSlow(cancellationToken);
-
-        static async ValueTask<string> GetSlow(CancellationToken ct)
-        {
-            // If someone else wins the race while we're awaiting, we return the winner.
-            // AtomicString doesn't have async GetOrAdd, so we do best-effort publish with TrySet.
-            string resolved = await Resolve(ct)
-                .NoSync();
-
-            if (_cached.TrySet(resolved))
-                return resolved;
-
-            return _cached.Get()!; // winner
-        }
     }
 
-    /// <summary>Absolute path to a file under /Resources.</summary>
-    [Pure]
-    public static async ValueTask<string> GetResourceFilePath(string fileName, CancellationToken cancellationToken = default)
+    private async ValueTask<string> GetSlow(CancellationToken cancellationToken)
     {
-        string resourcesPath = await Get(cancellationToken)
-            .NoSync();
-        return Path.Combine(resourcesPath, fileName);
+        string resolved = await Resolve(cancellationToken);
+
+        if (_cached.TrySet(resolved))
+            return resolved;
+
+        return _cached.Get()!;
     }
 
-    private static async ValueTask<string> Resolve(CancellationToken cancellationToken)
+    [Pure]
+    public async ValueTask<string> GetResourceFilePath(string fileName, CancellationToken cancellationToken = default)
+    {
+        string resourcesPath = await Get(cancellationToken).NoSync();
+        return System.IO.Path.Combine(resourcesPath, fileName);
+    }
+
+    private async ValueTask<string> Resolve(CancellationToken cancellationToken)
     {
         string baseDir = AppContext.BaseDirectory;
-        string baseResources = Path.Combine(baseDir, _resourcesFolderName);
-        string cwd = Directory.GetCurrentDirectory();
+        string baseResources = System.IO.Path.Combine(baseDir, _resourcesFolderName);
+        string cwd = System.IO.Directory.GetCurrentDirectory();
 
         // 1) Explicit override
         string? overrideDir = Environment.GetEnvironmentVariable(_overrideEnv);
-        if (overrideDir.HasContent() && Directory.Exists(overrideDir))
-            return Path.GetFullPath(overrideDir);
+        if (overrideDir.HasContent() && await _directoryUtil.Exists(overrideDir, cancellationToken))
+            return System.IO.Path.GetFullPath(overrideDir);
 
         // 2) Build output
-        if (Directory.Exists(baseResources))
+        if (await _directoryUtil.Exists(baseResources, cancellationToken))
             return baseResources;
 
         // 3) Azure Functions/App Service
@@ -76,8 +75,8 @@ public static class ResourcesPathUtil
             string? home = Environment.GetEnvironmentVariable("HOME");
             if (home.HasContent())
             {
-                string azureResources = Path.Combine(home, "site", "wwwroot", _resourcesFolderName);
-                if (Directory.Exists(azureResources))
+                string azureResources = System.IO.Path.Combine(home, "site", "wwwroot", _resourcesFolderName);
+                if (await _directoryUtil.Exists(azureResources, cancellationToken))
                     return azureResources;
             }
         }
@@ -88,17 +87,17 @@ public static class ResourcesPathUtil
             string? workspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
 
             string? boundRoot = null;
-            if (workspace.HasContent() && Directory.Exists(workspace))
-                boundRoot = Path.GetFullPath(workspace);
+            if (workspace.HasContent() && await _directoryUtil.Exists(workspace, cancellationToken))
+                boundRoot = System.IO.Path.GetFullPath(workspace);
 
-            string? foundInActions = FindUpForDirectory(cwd, _resourcesFolderName, boundRoot);
+            string? foundInActions = await FindUpForDirectory(cwd, _resourcesFolderName, boundRoot, cancellationToken);
             if (foundInActions is not null)
                 return foundInActions;
 
             if (boundRoot is not null)
             {
-                string repoResources = Path.Combine(boundRoot, _resourcesFolderName);
-                if (Directory.Exists(repoResources))
+                string repoResources = System.IO.Path.Combine(boundRoot, _resourcesFolderName);
+                if (await _directoryUtil.Exists(repoResources, cancellationToken))
                     return repoResources;
             }
         }
@@ -107,14 +106,13 @@ public static class ResourcesPathUtil
         if (await RuntimeUtil.IsContainer(cancellationToken)
                              .NoSync())
         {
-            // baseResources already computed
-            if (Directory.Exists(baseResources))
+            if (await _directoryUtil.Exists(baseResources, cancellationToken))
                 return baseResources;
         }
 
         // 6) Generic dev/test
         {
-            string? found = FindUpForDirectory(cwd, _resourcesFolderName, stopAtInclusive: null);
+            string? found = await FindUpForDirectory(cwd, _resourcesFolderName, stopAtInclusive: null, cancellationToken);
             if (found is not null)
                 return found;
         }
@@ -124,8 +122,8 @@ public static class ResourcesPathUtil
             string? home = Environment.GetEnvironmentVariable("HOME");
             if (home.HasContent())
             {
-                string homeResources = Path.Combine(home, "site", "wwwroot", _resourcesFolderName);
-                if (Directory.Exists(homeResources))
+                string homeResources = System.IO.Path.Combine(home, "site", "wwwroot", _resourcesFolderName);
+                if (await _directoryUtil.Exists(homeResources, cancellationToken))
                     return homeResources;
             }
         }
@@ -134,23 +132,21 @@ public static class ResourcesPathUtil
         return baseResources;
     }
 
-    private static string? FindUpForDirectory(string startDir, string targetName, string? stopAtInclusive)
+    private async ValueTask<string?> FindUpForDirectory(string startDir, string targetName, string? stopAtInclusive, CancellationToken cancellationToken)
     {
         string current = NormalizeDir(startDir);
         string? stop = stopAtInclusive is null ? null : NormalizeDir(stopAtInclusive);
 
         while (true)
         {
-            // allocs one string per level (unavoidable for Directory.Exists(string))
-            string candidate = Path.Combine(current, targetName);
-            if (Directory.Exists(candidate))
+            string candidate = System.IO.Path.Combine(current, targetName);
+            if (await _directoryUtil.Exists(candidate, cancellationToken))
                 return candidate;
 
             if (stop is not null && string.Equals(current, stop, StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            // Avoid Directory.GetParent (DirectoryInfo alloc); use string-based path op
-            string? parent = Path.GetDirectoryName(current);
+            string? parent = System.IO.Path.GetDirectoryName(current);
             if (parent is null)
                 return null;
 
@@ -161,9 +157,7 @@ public static class ResourcesPathUtil
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string NormalizeDir(string path)
     {
-        string full = Path.GetFullPath(path);
-
-        // TrimEnd only allocates if there are trailing separators.
-        return full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string full = System.IO.Path.GetFullPath(path);
+        return full.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
     }
 }

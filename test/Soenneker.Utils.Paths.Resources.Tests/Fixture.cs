@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Soenneker.Fixtures.Unit;
+using Soenneker.Utils.Paths.Resources.Registrars;
 using Soenneker.Utils.Test;
 
 namespace Soenneker.Utils.Paths.Resources.Tests;
@@ -24,5 +25,6 @@ public sealed class Fixture : UnitFixture
 
         IConfiguration config = TestUtil.BuildConfig();
         services.AddSingleton(config);
+        services.AddResourcesPathUtilAsScoped();
     }
 }
