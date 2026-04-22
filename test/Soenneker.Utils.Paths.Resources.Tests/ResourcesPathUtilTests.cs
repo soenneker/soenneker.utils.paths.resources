@@ -1,16 +1,15 @@
-﻿using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.Utils.Paths.Resources.Tests;
 
-[Collection("Collection")]
-public sealed class ResourcesPathUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public sealed class ResourcesPathUtilTests : HostedUnitTest
 {
-    public ResourcesPathUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public ResourcesPathUtilTests(Host host) : base(host)
     {
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
