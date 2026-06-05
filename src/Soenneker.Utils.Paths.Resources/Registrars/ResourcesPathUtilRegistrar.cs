@@ -5,6 +5,9 @@ using Soenneker.Utils.Paths.Resources.Abstract;
 
 namespace Soenneker.Utils.Paths.Resources.Registrars;
 
+/// <summary>
+/// Represents the resources path util registrar.
+/// </summary>
 public static class ResourcesPathUtilRegistrar
 {
     /// <summary>

@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Paths.Resources;
 
+/// <inheritdoc cref="IResourcesPathUtil"/>
 public sealed class ResourcesPathUtil : IResourcesPathUtil
 {
     private const string _resourcesFolderName = "Resources";
