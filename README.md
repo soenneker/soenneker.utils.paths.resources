@@ -4,10 +4,25 @@
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.utils.paths.resources/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.utils.paths.resources/actions/workflows/codeql.yml)
 
 # ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.Utils.Paths.Resources
-### A utility library for retrieving the Resources path across environments
+A utility library for retrieving the Resources path across environments.
 
 ## Installation
 
-```
+```bash
 dotnet add package Soenneker.Utils.Paths.Resources
 ```
+
+## Quick start
+
+```csharp
+using Soenneker.Utils.Paths.Resources.Registrars;
+
+services.AddResourcesPathUtilAsSingleton();
+```
+
+Then inject `IResourcesPathUtil` wherever you need it.
+
+## Common operations
+
+- `Get()` - Returns the absolute path to the "Resources" directory according to the resolution order.
+- `GetResourceFilePath()` - Absolute path to a file under /Resources.
