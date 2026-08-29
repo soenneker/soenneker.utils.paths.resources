@@ -13,6 +13,7 @@ public static class ResourcesPathUtilRegistrar
     /// <summary>
     /// Adds <see cref="IResourcesPathUtil"/> as a scoped service.
     /// </summary>
+    /// <returns>Adds <see cref="IResourcesPathUtil"/> as a scoped service.</returns>
     public static IServiceCollection AddResourcesPathUtilAsScoped(this IServiceCollection services)
     {
         services.AddDirectoryUtilAsScoped().TryAddScoped<IResourcesPathUtil, ResourcesPathUtil>();
@@ -22,6 +23,7 @@ public static class ResourcesPathUtilRegistrar
     /// <summary>
     /// Adds <see cref="IResourcesPathUtil"/> as a singleton service.
     /// </summary>
+    /// <returns>Adds <see cref="IResourcesPathUtil"/> as a singleton service.</returns>
     public static IServiceCollection AddResourcesPathUtilAsSingleton(this IServiceCollection services)
     {
         services.AddDirectoryUtilAsSingleton().TryAddSingleton<IResourcesPathUtil, ResourcesPathUtil>();
