@@ -15,8 +15,10 @@ public interface IResourcesPathUtil
     ValueTask<string> Get(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Absolute path to a file under /Resources.
+    /// Resolves a relative file path beneath the selected Resources directory without allowing traversal outside it.
     /// </summary>
-    /// <returns>Absolute path to a file under /Resources.</returns>
+    /// <param name="fileName">A relative file or nested path beneath Resources.</param>
+    /// <param name="cancellationToken">Signals that resolution should stop.</param>
+    /// <returns>The absolute contained path. The file is not required to exist.</returns>
     ValueTask<string> GetResourceFilePath(string fileName, CancellationToken cancellationToken = default);
 }

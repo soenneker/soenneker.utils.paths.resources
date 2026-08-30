@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Paths.Resources;
 
-/// <inheritdoc cref="IResourcesPathUtil"/>
 public sealed class ResourcesPathUtil : IResourcesPathUtil
 {
     private const string _resourcesFolderName = "Resources";
@@ -26,7 +25,6 @@ public sealed class ResourcesPathUtil : IResourcesPathUtil
         _directoryUtil = directoryUtil;
     }
 
-    [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<string> Get(CancellationToken cancellationToken = default)
     {
@@ -45,12 +43,20 @@ public sealed class ResourcesPathUtil : IResourcesPathUtil
         return _cached.Get()!;
     }
 
-    [Pure]
     public async ValueTask<string> GetResourceFilePath(string fileName, CancellationToken cancellationToken = default)
     {
         string resourcesPath = await Get(cancellationToken)
             .NoSync();
-        return System.IO.Path.Combine(resourcesPath, fileName);
+
+        string root = System.IO.Path.GetFullPath(resourcesPath);
+        string candidate = System.IO.Path.GetFullPath(fileName, root);
+        string rootPrefix = System.IO.Path.EndsInDirectorySeparator(root) ? root : root + System.IO.Path.DirectorySeparatorChar;
+        StringComparison comparison = RuntimeUtil.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+        if (!candidate.StartsWith(rootPrefix, comparison))
+            throw new InvalidOperationException("The resource file path must remain inside the Resources directory");
+
+        return candidate;
     }
 
     private async ValueTask<string> Resolve(CancellationToken cancellationToken)

@@ -22,7 +22,31 @@ services.AddResourcesPathUtilAsSingleton();
 
 Then inject `IResourcesPathUtil` wherever you need it.
 
-## Common operations
+## Resolve the Resources directory
 
-- `Get()` - Returns the absolute path to the "Resources" directory according to the resolution order.
-- `GetResourceFilePath()` - Absolute path to a file under /Resources.
+```csharp
+string resourcesDirectory = await resourcesPathUtil.Get(cancellationToken);
+string templatePath = await resourcesPathUtil.GetResourceFilePath(
+    Path.Combine("Templates", "invoice.html"),
+    cancellationToken);
+```
+
+`GetResourceFilePath` accepts a relative file or nested path and guarantees the normalized result
+stays beneath the resolved Resources directory. Rooted paths and `..` traversal outside that
+directory throw `InvalidOperationException`. The method only constructs a path; it does not require
+the file to exist.
+
+The directory is resolved in this order:
+
+1. Existing directory from `RESOURCES_DIR`.
+2. `Resources` beside the running application's base directory.
+3. Azure `HOME/site/wwwroot/Resources` for Functions or App Service.
+4. A `Resources` directory found from the current directory within a GitHub Actions workspace, then `<GITHUB_WORKSPACE>/Resources`.
+5. A `Resources` directory found by walking upward from the current directory.
+6. `HOME/site/wwwroot/Resources` outside Azure.
+7. The application-base `Resources` path as a last resort, even when it does not exist.
+
+Resolution never creates the directory. The first result is cached by each utility instance, so
+changes to environment variables, the current directory, or the filesystem are not observed by
+later calls on that instance. Singleton registration shares that cached decision application-wide;
+scoped registration resolves once per scope.
