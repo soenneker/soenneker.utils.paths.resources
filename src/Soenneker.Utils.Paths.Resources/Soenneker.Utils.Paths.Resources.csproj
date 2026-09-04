@@ -45,7 +45,7 @@
 
     <ItemGroup>
         <PackageReference Include="Soenneker.Atomics.Strings" Version="4.0.19" />
-        <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.916" />
-        <PackageReference Include="Soenneker.Utils.Runtime" Version="4.0.1087" />
+        <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.917" />
+        <PackageReference Include="Soenneker.Utils.Runtime" Version="4.0.1088" />
     </ItemGroup>
 </Project>
