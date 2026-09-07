@@ -51,10 +51,11 @@ public sealed class ResourcesPathUtil : IResourcesPathUtil
 
         string root = System.IO.Path.GetFullPath(resourcesPath);
         string candidate = System.IO.Path.GetFullPath(fileName, root);
-        string rootPrefix = System.IO.Path.EndsInDirectorySeparator(root) ? root : root + System.IO.Path.DirectorySeparatorChar;
+        bool rootEndsInSeparator = System.IO.Path.EndsInDirectorySeparator(root);
         StringComparison comparison = RuntimeUtil.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-        if (!candidate.StartsWith(rootPrefix, comparison))
+        if (!candidate.StartsWith(root, comparison) ||
+            (!rootEndsInSeparator && (candidate.Length <= root.Length || candidate[root.Length] != System.IO.Path.DirectorySeparatorChar)))
             throw new InvalidOperationException("The resource file path must remain inside the Resources directory");
 
         return candidate;
