@@ -46,8 +46,8 @@
 
     <ItemGroup>
         <PackageReference Include="Soenneker.Atomics.Strings" Version="4.0.31" />
-        <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.963" />
-        <PackageReference Include="Soenneker.Utils.Runtime" Version="4.0.1145" />
+        <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.965" />
+        <PackageReference Include="Soenneker.Utils.Runtime" Version="4.0.1148" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.132" />
